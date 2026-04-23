@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Calculadora HYDRA</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: 'Segoe UI';
+  background: radial-gradient(circle,#1a0f2e,#05080f);
+  color: white;
+}
+.container {
+  width: 750px;
+  margin: 40px auto;
+  background: rgba(20,10,30,0.95);
+  border-radius: 15px;
+  padding: 20px;
+  box-shadow: 0 0 50px rgba(128,0,255,0.3);
+}
+.header {
+  text-align: center;
+  font-size: 28px;
+  padding: 12px;
+  background: linear-gradient(90deg,#5f2c82,#8e44ad);
+  border-radius: 10px;
+}
+.linha-nome { display:flex; gap:10px; margin-top:10px; }
+.input-dark, select {
+  width:100%; padding:12px; margin-top:10px;
+  background:#12091c; border:1px solid #6a11cb;
+  color:white; border-radius:8px;
+}
+.btn-hydra {
+  padding:10px; border:none; border-radius:10px;
+  background:linear-gradient(90deg,#5f2c82,#8e44ad);
+  color:white; cursor:pointer; font-weight:bold;
+}
+.menu { display:flex; gap:10px; margin-top:10px; }
+.menu button { flex:1; }
+.center { display:flex; justify-content:center; margin-top:20px; }
+.item {
+  display:flex; justify-content:space-between;
+  padding:12px; margin:8px 0;
+  background:rgba(255,255,255,0.05);
+  border-radius:10px;
+}
+.controls { display:flex; gap:6px; align-items:center; }
+.controls input {
+  width:60px; text-align:center;
+  background:#12091c; border:1px solid #6a11cb;
+  color:white; border-radius:6px;
+}
+.controls button {
+  width:28px; height:28px;
+  border:none; background:#6a11cb;
+  color:white; border-radius:6px;
+  cursor:pointer;
+}
+.result,.log {
+  margin-top:15px; padding:10px;
+  background:#12091c; border-radius:10px;
+}
+.aviso {
+  background: rgba(255,0,0,0.2);
+  border:1px solid #ff4d4d;
+  padding:10px;
+  border-radius:8px;
+  text-align:center;
+  font-weight:bold;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="header">CALCULADORA HYDRA</div>
+
+<div class="linha-nome">
+<input id="nomePessoa" class="input-dark" placeholder="Responsável">
+<input id="nomeFac" class="input-dark" placeholder="Facção">
+<button class="btn-hydra" onclick="resetar()">♻ RESET</button>
+</div>
+
+<div class="menu">
+<button class="btn-hydra" onclick="modo('itens')">📦 ITENS</button>
+<button class="btn-hydra" onclick="modo('des')">🔧 DESMANCHE</button>
+</div>
+
+<div id="lista"></div>
+
+<div id="campoDesmanche" style="display:none;">
+  <div class="item">
+    <span>Quantidade</span>
+    <div class="controls">
+      <input type="number" id="qtdDesmanche" value="0" oninput="setDesmanche(this.value)">
+    </div>
+  </div>
+</div>
+
+<select id="parceria">
+<option value="sim">Com parceria</option>
+<option value="nao">Sem parceria</option>
+</select>
+
+<div id="resultado" class="result"></div>
+
+<div class="center">
+<button class="btn-hydra" onclick="exportar()">💾 REGISTRAR</button>
+</div>
+
+<div id="log" class="log"></div>
+
+</div>
+
+<script>
+let tipo="itens";
+
+const format = n => Math.round(n).toLocaleString("pt-BR");
+
+const data={
+  placa:{nome:"Placa",min:10000,max:14000,qtd:0,al:200,custo:0},
+  nitro:{nome:"Nitro",min:15000,max:21000,qtd:0,al:33,custo:0},
+  tablet:{nome:"Tablet",min:10000,max:14000,qtd:0,al:0,custo:5000},
+  ticket:{nome:"Ticket",min:10000,max:14000,qtd:0,al:0,custo:5000},
+  macarico:{nome:"Maçarico",min:5000,max:7000,qtd:0,al:15,custo:0},
+  peca:{nome:"Peça",min:2000,max:3000,qtd:0,al:0,custo:2000},
+  lockpick:{nome:"Lockpick",min:10000,max:14000,qtd:0,al:25,custo:0},
+  laptop:{nome:"Laptop",min:15000,max:21000,qtd:0,al:70,custo:0}
+};
+
+function alt(k,v){ data[k].qtd=Math.max(0,data[k].qtd+v); render(); }
+function setQtd(k,v){ data[k].qtd=Math.max(0,parseInt(v)||0); calcular(); }
+function setDesmanche(v){ qtdDesmanche.value=Math.max(0,parseInt(v)||0); calcular(); }
+
+function modo(m){
+  tipo=m;
+  lista.style.display=m=="itens"?"block":"none";
+  campoDesmanche.style.display=m=="des"?"block":"none";
+  log.innerHTML="";
+  calcular();
+}
+
+function resetar(){
+  for(let k in data) data[k].qtd=0;
+  qtdDesmanche.value=0;
+
+  nomePessoa.value="";
+  nomeFac.value="";
+
+  log.innerHTML="";
+  resultado.innerHTML="";
+  render();
+}
+
+function render(){
+  let html="";
+  for(let k in data){
+    html+=`
+    <div class="item">
+      ${data[k].nome}
+      <div class="controls">
+        <button onclick="alt('${k}',-1)">-</button>
+        <input type="number" value="${data[k].qtd}" oninput="setQtd('${k}',this.value)">
+        <button onclick="alt('${k}',1)">+</button>
+      </div>
+    </div>`;
+  }
+  lista.innerHTML=html;
+  calcular();
+}
+
+function calcular(){
+  let nome=nomePessoa.value.trim();
+  let facNome=nomeFac.value.trim();
+  let p=parceria.value;
+
+  let aviso = (!nome||!facNome)
+    ? `<div class="aviso">⚠ Preencha o nome do responsável e da facção</div><br>`
+    : "";
+
+  if(tipo=="itens"){
+    let total=0,custo=0,aluminio=0;
+
+    for(let k in data){
+      let i=data[k];
+      if(i.qtd>0){
+        let preco=p=="sim"?i.min:i.max;
+        total+=i.qtd*preco;
+        custo+=i.qtd*i.custo;
+        aluminio+=i.qtd*i.al;
+      }
+    }
+
+    let cliente=p=="sim"?total*0.7:total*0.5;
+    let vend=total*0.2;
+    let fac=p=="sim"?total*0.1:total*0.3;
+
+    resultado.innerHTML=`
+${aviso}
+👤 ${nome}<br>
+🏴 ${facNome}<br><br>
+
+💰 Total: R$ ${format(total)}<br>
+🏪 Custo: R$ ${format(custo)}<br>
+🪨 Alumínio: ${format(aluminio)}<br><br>
+
+🏢 FAC: R$ ${format(cliente+fac)}<br>
+👥 Vendedor: R$ ${format(vend)}
+`;
+  }
+
+  if(tipo=="des"){
+    let qtd=parseInt(qtdDesmanche.value)||0;
+
+    let cliente=qtd*(p=="sim"?0.7:0.5);
+    let vend=qtd*0.2;
+    let fac=qtd*(p=="sim"?0.1:0.3);
+
+    resultado.innerHTML=`
+${aviso}
+👤 ${nome}<br>
+🏴 ${facNome}<br><br>
+
+📦 Itens: ${qtd}<br><br>
+
+👤 Cliente: ${Math.round(cliente)}<br>
+👥 Vendedor: ${Math.round(vend)}<br>
+🏢 FAC: ${Math.round(fac)}
+`;
+  }
+}
+
+function exportar(){
+  let nome=nomePessoa.value.trim();
+  let facNome=nomeFac.value.trim();
+  let p=parceria.value;
+
+  if(!nome||!facNome){
+    alert("Preencha os campos!");
+    return;
+  }
+
+  let texto="";
+
+  if(tipo=="itens"){
+    let itens=Object.values(data).filter(i=>i.qtd>0);
+
+    let listaItens=itens.map(i=>{
+      let aluminio=i.qtd*i.al;
+      let custo=i.qtd*i.custo;
+
+      return i.al>0
+        ? `${i.nome} x${i.qtd} → ${aluminio} alumínio`
+        : `${i.nome} x${i.qtd} → R$ ${format(custo)}`;
+    }).join("\n");
+
+    let total=0;
+    itens.forEach(i=>{
+      let preco=p=="sim"?i.min:i.max;
+      total+=i.qtd*preco;
+    });
+
+    let cliente=p=="sim"?total*0.7:total*0.5;
+    let vend=total*0.2;
+    let fac=p=="sim"?total*0.1:total*0.3;
+
+    texto=`
+👤 ${nome}
+🏴 ${facNome}
+
+🔧 UTILIZADO:
+${listaItens}
+
+💰 Total: R$ ${format(total)}
+
+🏢 FAC: R$ ${format(cliente+fac)}
+👥 Vendedor: R$ ${format(vend)}
+
+📅 ${new Date().toLocaleString()}
+`;
+  } else {
+    let qtd=parseInt(qtdDesmanche.value)||0;
+
+    let cliente=qtd*(p=="sim"?0.7:0.5);
+    let vend=qtd*0.2;
+    let fac=qtd*(p=="sim"?0.1:0.3);
+
+    texto=`
+👤 ${nome}
+🏴 ${facNome}
+
+📦 Itens: ${qtd}
+
+👤 Cliente: ${Math.round(cliente)}
+👥 Vendedor: ${Math.round(vend)}
+🏢 FAC: ${Math.round(fac)}
+
+📅 ${new Date().toLocaleString()}
+`;
+  }
+
+  log.innerText=texto;
+}
+
+parceria.onchange=calcular;
+nomePessoa.oninput=calcular;
+nomeFac.oninput=calcular;
+
+render();
+</script>
+
+</body>
+</html>
